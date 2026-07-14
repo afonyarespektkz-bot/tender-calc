@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тендер Калькулятор</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e2d45;
+    --accent: #00d4ff;
+    --accent2: #00ff88;
+    --danger: #ff4d6d;
+    --warn: #ffb800;
+    --text: #e8edf5;
+    --muted: #5a7090;
+    --low: #ff4d6d;
+    --mid: #ffb800;
+    --high: #00ff88;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid bg */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .app {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 20px 60px;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(36px, 6vw, 64px);
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-shadow: 0 0 40px rgba(0,212,255,0.3);
+    line-height: 1;
+  }
+  .header-sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 28px;
+    background: var(--surface);
+    padding: 4px;
+    border-radius: 8px;
+    width: fit-content;
+    border: 1px solid var(--border);
+  }
+  .tab {
+    padding: 8px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    transition: all 0.2s;
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.5px;
+    border: none;
+    background: none;
+  }
+  .tab.active {
+    background: var(--accent);
+    color: #000;
+  }
+
+  /* Panel */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Grid layout */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media(max-width: 700px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+  }
+  .card-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  /* Field */
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 5px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .field input, .field select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  .field input:focus, .field select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(0,212,255,0.1);
+  }
+  .field select option { background: var(--surface2); }
+
+  /* Tax toggle */
+  .tax-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .tax-btn {
+    flex: 1;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .tax-btn.active {
+    border-color: var(--accent);
+    background: rgba(0,212,255,0.1);
+    color: var(--accent);
+  }
+
+  /* Result card */
+  .result-main {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    margin-top: 20px;
+  }
+
+  .margin-display {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .margin-circle {
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid var(--border);
+    position: relative;
+    flex-shrink: 0;
+    transition: all 0.4s;
+  }
+  .margin-circle .pct {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    line-height: 1;
+    transition: color 0.4s;
+  }
+  .margin-circle .pct-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .indicator-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    border-radius: 100px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: 1px solid;
+  }
+  .indicator-badge .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+
+  .breakdown {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    margin-top: 20px;
+  }
+  .breakdown-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .breakdown-item .bi-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .breakdown-item .bi-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .bi-neg { color: var(--danger); }
+  .bi-pos { color: var(--accent2); }
+  .bi-neu { color: var(--accent); }
+
+  /* Margin bar */
+  .margin-bar-wrap {
+    margin-top: 20px;
+  }
+  .margin-bar-labels {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .margin-bar-track {
+    height: 8px;
+    background: var(--surface2);
+    border-radius: 100px;
+    overflow: hidden;
+    position: relative;
+  }
+  .margin-bar-fill {
+    height: 100%;
+    border-radius: 100px;
+    transition: width 0.5s cubic-bezier(0.4,0,0.2,1), background 0.4s;
+    min-width: 0;
+  }
+  .margin-bar-zones {
+    display: flex;
+    margin-top: 4px;
+    gap: 2px;
+  }
+  .zone {
+    flex: 1;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.5px;
+    text-align: center;
+    padding: 2px 0;
+  }
+
+  /* Tax details */
+  .tax-detail-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-top: 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+  }
+  .tax-detail-box .tdb-title {
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .tdb-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  .tdb-row:last-child { border-bottom: none; }
+  .tdb-row span:last-child { color: var(--accent); }
+
+  /* ===== COMPARISON ===== */
+  .supplier-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    border-radius: 6px;
+    border: 1px solid var(--accent);
+    background: rgba(0,212,255,0.08);
+    color: var(--accent);
+    cursor: pointer;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+  }
+  .btn:hover { background: rgba(0,212,255,0.18); }
+  .btn-danger {
+    border-color: var(--danger);
+    color: var(--danger);
+    background: rgba(255,77,109,0.05);
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+  .btn-danger:hover { background: rgba(255,77,109,0.15); }
+
+  .supplier-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .supplier-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    position: relative;
+    transition: border-color 0.3s;
+  }
+  .supplier-card.best {
+    border-color: var(--accent2);
+    box-shadow: 0 0 20px rgba(0,255,136,0.08);
+  }
+  .best-badge {
+    position: absolute;
+    top: -1px; right: 16px;
+    background: var(--accent2);
+    color: #000;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    padding: 3px 10px;
+    border-radius: 0 0 6px 6px;
+    text-transform: uppercase;
+    display: none;
+  }
+  .supplier-card.best .best-badge { display: block; }
+
+  .supplier-name-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .supplier-name-row input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'IBM Plex Sans', sans-serif;
+    padding: 4px 0;
+    width: 200px;
+  }
+  .supplier-name-row input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: none;
+  }
+
+  .s-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media(max-width: 500px) { .s-fields { grid-template-columns: 1fr; } }
+
+  .s-result {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .s-pct {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    line-height: 1;
+    transition: color 0.3s;
+  }
+  .s-profit {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+  }
+  .s-profit .label { color: var(--muted); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; }
+
+  .compare-bar {
+    flex: 1;
+    min-width: 100px;
+    height: 6px;
+    background: var(--border);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .compare-bar-fill {
+    height: 100%;
+    border-radius: 100px;
+    transition: width 0.5s;
+  }
+
+  /* Divider */
+  .section-sep {
+    height: 1px;
+    background: var(--border);
+    margin: 24px 0;
+  }
+
+  .info-box {
+    background: rgba(0,212,255,0.05);
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+  .info-box strong { color: var(--accent); }
+
+  /* Tooltip hint */
+  .hint { font-size: 11px; color: var(--muted); margin-top: 4px; font-style: italic; }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+  }
+
+  /* Animate in */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .card, .result-main, .supplier-card {
+    animation: fadeUp 0.3s ease both;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <h1>ТЕНДЕР<span style="color:var(--accent2)">CALC</span></h1>
+  </div>
+  <div class="header-sub">// Калькулятор маржинальности тендерных заявок</div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('calc')">Калькулятор</button>
+    <button class="tab" onclick="switchTab('compare')">Сравнение поставщиков</button>
+  </div>
+
+  <!-- ===== CALCULATOR TAB ===== -->
+  <div class="panel active" id="tab-calc">
+
+    <div class="grid-2" style="margin-bottom:16px">
+      <!-- Left: основные данные -->
+      <div class="card">
+        <div class="card-title">// Параметры тендера</div>
+
+        <div class="field">
+          <label>Сумма лота (тенге)</label>
+          <input type="number" id="lot" placeholder="0" oninput="calc()" />
+        </div>
+        <div class="field">
+          <label>Ваша заявочная цена (тенге)</label>
+          <input type="number" id="bid" placeholder="0" oninput="calc()" />
+          <div class="hint">Цена, по которой подаёте заявку</div>
+        </div>
+        <div class="field">
+          <label>Закупочная цена у поставщика (тенге)</label>
+          <input type="number" id="purchase" placeholder="0" oninput="calc()" />
+        </div>
+        <div class="field">
+          <label>Стоимость доставки (тенге)</label>
+          <input type="number" id="delivery" placeholder="0" oninput="calc()" />
+        </div>
+        <div class="field">
+          <label>Комиссия портала (%)</label>
+          <input type="number" id="portal" placeholder="0" step="0.1" oninput="calc()" />
+        </div>
+      </div>
+
+      <!-- Right: налоги -->
+      <div class="card">
+        <div class="card-title">// Налогообложение</div>
+
+        <div style="margin-bottom:12px;font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;">РЕЖИМ</div>
+        <div class="tax-toggle">
+          <div class="tax-btn active" id="btn-our" onclick="setTax('our')">ОУР</div>
+          <div class="tax-btn" id="btn-usn" onclick="setTax('usn')">Упрощёнка</div>
+        </div>
+
+        <!-- ОУР -->
+        <div id="tax-our">
+          <div style="margin-bottom:10px;font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;">ТИП СУБЪЕКТА</div>
+          <div class="tax-toggle" style="margin-bottom:12px;">
+            <div class="tax-btn active" id="btn-ip" onclick="setEntity('ip')">ИП</div>
+            <div class="tax-btn" id="btn-too" onclick="setEntity('too')">ТОО</div>
+          </div>
+          <div class="info-box" id="our-info-box">
+            <strong>ОУР / ИП:</strong> ИПН 10% от разницы<br>
+            (цена продажи − закупочная цена)<br>
+            НДС 16% — зачитываете входящий НДС от поставщика
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <label style="font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;white-space:nowrap;">Включить НДС</label>
+            <input type="checkbox" id="vat-on" onchange="calc()" style="width:auto;accent-color:var(--accent);" />
+          </div>
+          <div class="hint" style="margin-bottom:10px;">Если ваш поставщик — плательщик НДС, вы зачитываете входящий НДС</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <label style="font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;white-space:nowrap;">Постав. — плательщик НДС</label>
+            <input type="checkbox" id="vat-supplier" onchange="calc()" style="width:auto;accent-color:var(--accent);" />
+          </div>
+        </div>
+
+        <!-- Упрощёнка -->
+        <div id="tax-usn" style="display:none">
+          <div class="info-box">
+            <strong>Упрощёнка:</strong> налог считается от суммы продажи (выручки), НДС не платите (если не превысили порог)
+          </div>
+          <div class="field">
+            <label>Ставка налога (%)</label>
+            <input type="number" id="usn-rate" value="3" step="0.5" min="0" max="100" oninput="calc()" />
+            <div class="hint">Обычно 3% (1.5% + 1.5% соц. отчисления)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="result-main" id="result-block">
+      <div class="card-title" style="margin-bottom:20px;">// Результат</div>
+
+      <div class="margin-display">
+        <div class="margin-circle" id="margin-circle">
+          <span class="pct" id="res-pct">—</span>
+          <span class="pct-label">МАРЖА</span>
+        </div>
+        <div>
+          <div id="indicator-badge" class="indicator-badge" style="border-color:var(--muted);color:var(--muted);margin-bottom:12px;">
+            <span class="dot" style="background:var(--muted)"></span>
+            <span>Введите данные</span>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);">
+            Чистая прибыль:
+            <span id="res-profit" style="color:var(--text);font-size:15px;font-weight:600;margin-left:8px;">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bar -->
+      <div class="margin-bar-wrap">
+        <div class="margin-bar-labels">
+          <span>0%</span>
+          <span style="color:var(--low)">◀ Мало (&lt;10%)</span>
+          <span style="color:var(--mid)">Средне (10–25%)</span>
+          <span style="color:var(--high)">Отлично (&gt;25%) ▶</span>
+          <span>50%+</span>
+        </div>
+        <div class="margin-bar-track">
+          <div class="margin-bar-fill" id="margin-bar" style="width:0%;background:var(--muted)"></div>
+        </div>
+      </div>
+
+      <div class="section-sep"></div>
+
+      <!-- Breakdown -->
+      <div class="breakdown" id="breakdown">
+        <div class="breakdown-item">
+          <div class="bi-label">Выручка</div>
+          <div class="bi-val bi-neu" id="bd-revenue">—</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="bi-label">Закупка</div>
+          <div class="bi-val bi-neg" id="bd-purchase">—</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="bi-label">Доставка</div>
+          <div class="bi-val bi-neg" id="bd-delivery">—</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="bi-label">Комиссия портала</div>
+          <div class="bi-val bi-neg" id="bd-portal">—</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="bi-label">Налог</div>
+          <div class="bi-val bi-neg" id="bd-tax">—</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="bi-label">Чистая прибыль</div>
+          <div class="bi-val" id="bd-net">—</div>
+        </div>
+      </div>
+
+      <!-- Tax details -->
+      <div class="tax-detail-box" id="tax-detail" style="display:none">
+        <div class="tdb-title">// Расчёт налога</div>
+        <div id="tax-detail-rows"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== COMPARISON TAB ===== -->
+  <div class="panel" id="tab-compare">
+
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-title">// Общие параметры сделки</div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Заявочная цена (тенге)</label>
+          <input type="number" id="c-bid" placeholder="0" oninput="calcCompare()" />
+        </div>
+        <div class="field">
+          <label>Комиссия портала (%)</label>
+          <input type="number" id="c-portal" placeholder="0" step="0.1" oninput="calcCompare()" />
+        </div>
+      </div>
+      <div style="margin-top:8px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="tax-toggle" style="margin:0">
+            <div class="tax-btn active" id="c-btn-our" onclick="cSetTax('our')">ОУР</div>
+            <div class="tax-btn" id="c-btn-usn" onclick="cSetTax('usn')">Упрощёнка</div>
+          </div>
+        </div>
+        <div id="c-tax-our" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <label style="font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;white-space:nowrap;">НДС включить</label>
+          <input type="checkbox" id="c-vat-on" onchange="calcCompare()" style="width:auto;accent-color:var(--accent);" />
+        </div>
+        <div id="c-tax-usn" style="display:none;align-items:center;gap:8px;">
+          <label style="font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;white-space:nowrap;">Ставка %</label>
+          <input type="number" id="c-usn-rate" value="3" step="0.5" style="width:70px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:13px;outline:none;" oninput="calcCompare()" />
+        </div>
+      </div>
+    </div>
+
+    <div class="supplier-header">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:1px;">// ПОСТАВЩИКИ <span id="sup-count" style="color:var(--accent)"></span></div>
+      <button class="btn" id="add-supplier-btn" onclick="addSupplier()">+ Добавить поставщика</button>
+    </div>
+
+    <div class="supplier-list" id="supplier-list">
+      <!-- dynamically rendered -->
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ===== STATE =====
+let taxMode = 'our';
+let cTaxMode = 'our';
+let entityMode = 'ip';   // 'ip' | 'too'
+let cEntityMode = 'ip';
+let suppliers = [];
+let supId = 0;
+
+// ===== FORMAT =====
+function fmt(n) {
+  if (isNaN(n) || n === null) return '—';
+  return new Intl.NumberFormat('ru-RU', {maximumFractionDigits: 0}).format(n) + ' ₸';
+}
+function fmtPct(n) {
+  if (isNaN(n)) return '—';
+  return (n > 0 ? '+' : '') + n.toFixed(1) + '%';
+}
+
+// ===== TAX MODES =====
+function setEntity(mode) {
+  entityMode = mode;
+  document.getElementById('btn-ip').classList.toggle('active', mode === 'ip');
+  document.getElementById('btn-too').classList.toggle('active', mode === 'too');
+  const infoBox = document.getElementById('our-info-box');
+  if (mode === 'ip') {
+    infoBox.innerHTML = '<strong>ОУР / ИП:</strong> ИПН 10% от разницы<br>(цена продажи − закупочная цена)<br>НДС 16% — зачитываете входящий НДС от поставщика';
+  } else {
+    infoBox.innerHTML = '<strong>ОУР / ТОО:</strong> КПН 20% от разницы<br>(цена продажи − закупочная цена)<br>НДС 16% — зачитываете входящий НДС от поставщика';
+  }
+  calc();
+}
+function cSetEntity(mode) {
+  cEntityMode = mode;
+  document.getElementById('c-btn-ip').classList.toggle('active', mode === 'ip');
+  document.getElementById('c-btn-too').classList.toggle('active', mode === 'too');
+  calcCompare();
+}
+function setTax(mode) {
+  taxMode = mode;
+  document.getElementById('btn-our').classList.toggle('active', mode === 'our');
+  document.getElementById('btn-usn').classList.toggle('active', mode === 'usn');
+  document.getElementById('tax-our').style.display = mode === 'our' ? '' : 'none';
+  document.getElementById('tax-usn').style.display = mode === 'usn' ? '' : 'none';
+  calc();
+}
+function cSetTax(mode) {
+  cTaxMode = mode;
+  document.getElementById('c-btn-our').classList.toggle('active', mode === 'our');
+  document.getElementById('c-btn-usn').classList.toggle('active', mode === 'usn');
+  document.getElementById('c-tax-our').style.display = mode === 'our' ? 'flex' : 'none';
+  document.getElementById('c-tax-usn').style.display = mode === 'usn' ? 'flex' : 'none';
+  calcCompare();
+}
+
+// ===== CORE CALC =====
+function computeMargin({bid, purchase, delivery, portalPct, taxMode, entityMode, vatOn, vatSupplier, usnRate}) {
+  if (!bid) return null;
+  if (!purchase) return null;
+
+  const revenue = bid;
+  const portalFee = revenue * (portalPct / 100);
+
+  let taxAmount = 0;
+  let taxRows = [];
+  let vatNote = '';
+
+  if (taxMode === 'our') {
+    const taxRate = entityMode === 'too' ? 0.20 : 0.10;
+    const taxLabel = entityMode === 'too' ? 'КПН 20% (ТОО)' : 'ИПН 10% (ИП)';
+    const diff = revenue - purchase;
+    const incomeTax = Math.max(0, diff * taxRate);
+    taxRows.push({ label: 'Разница (выручка − закупка)', val: fmt(diff) });
+    taxRows.push({ label: taxLabel + ' от разницы', val: fmt(incomeTax) });
+
+    if (vatOn) {
+      const vatOut = revenue * (16/116);
+      let vatIn = 0;
+      if (vatSupplier) vatIn = purchase * (16/116);
+      const vatToPay = Math.max(0, vatOut - vatIn);
+      taxRows.push({ label: 'НДС к уплате (исходящий − входящий)', val: fmt(vatToPay) });
+      vatNote = `Исх. НДС: ${fmt(vatOut)} | Вх. НДС: ${fmt(vatIn)}`;
+      taxAmount = incomeTax + vatToPay;
+    } else {
+      taxAmount = incomeTax;
+    }
+  } else {
+    const tax = revenue * (usnRate / 100);
+    taxRows.push({ label: `Налог ${usnRate}% от выручки`, val: fmt(tax) });
+    taxAmount = tax;
+  }
+
+  const netProfit = revenue - purchase - delivery - portalFee - taxAmount;
+  const marginPct = (netProfit / revenue) * 100;
+
+  return { revenue, purchase, delivery, portalFee, taxAmount, netProfit, marginPct, taxRows, vatNote };
+}
+
+// ===== INDICATOR =====
+function indicator(pct) {
+  if (pct < 10)  return { label: 'Мало',    color: 'var(--low)',  emoji: '⚠' };
+  if (pct < 25)  return { label: 'Средне',  color: 'var(--mid)',  emoji: '◎' };
+  return               { label: 'Отлично', color: 'var(--high)', emoji: '✦' };
+}
+
+// ===== MAIN CALC =====
+function calc() {
+  const bid      = parseFloat(document.getElementById('bid').value) || 0;
+  const purchase = parseFloat(document.getElementById('purchase').value) || 0;
+  const delivery = parseFloat(document.getElementById('delivery').value) || 0;
+  const portalPct= parseFloat(document.getElementById('portal').value) || 0;
+  const vatOn    = document.getElementById('vat-on').checked;
+  const vatSup   = document.getElementById('vat-supplier').checked;
+  const usnRate  = parseFloat(document.getElementById('usn-rate').value) || 3;
+
+  const r = computeMargin({bid, purchase, delivery, portalPct, taxMode, entityMode, vatOn, vatSupplier: vatSup, usnRate});
+
+  const pctEl   = document.getElementById('res-pct');
+  const profEl  = document.getElementById('res-profit');
+  const barEl   = document.getElementById('margin-bar');
+  const circle  = document.getElementById('margin-circle');
+  const badge   = document.getElementById('indicator-badge');
+
+  if (!r || bid === 0 || purchase === 0) {
+    pctEl.textContent = '—';
+    profEl.textContent = '—';
+    barEl.style.width = '0%';
+    barEl.style.background = 'var(--muted)';
+    circle.style.borderColor = 'var(--border)';
+    pctEl.style.color = 'var(--muted)';
+    badge.innerHTML = `<span class="dot" style="background:var(--muted)"></span><span>Введите данные</span>`;
+    badge.style.borderColor = 'var(--muted)'; badge.style.color = 'var(--muted)';
+    ['bd-revenue','bd-purchase','bd-delivery','bd-portal','bd-tax','bd-net'].forEach(id => document.getElementById(id).textContent = '—');
+    document.getElementById('tax-detail').style.display = 'none';
+    return;
+  }
+
+  const pct = r.marginPct;
+  const ind = indicator(pct);
+
+  pctEl.textContent = pct.toFixed(1) + '%';
+  pctEl.style.color = ind.color;
+  circle.style.borderColor = ind.color;
+  circle.style.boxShadow = `0 0 20px ${ind.color}44`;
+
+  profEl.textContent = fmt(r.netProfit);
+  profEl.style.color = r.netProfit >= 0 ? 'var(--accent2)' : 'var(--danger)';
+
+  const barPct = Math.max(0, Math.min(100, pct * 2)); // 50% maps to 100% bar
+  barEl.style.width = barPct + '%';
+  barEl.style.background = ind.color;
+
+  badge.innerHTML = `<span class="dot" style="background:${ind.color}"></span><span>${ind.emoji} ${ind.label}</span>`;
+  badge.style.borderColor = ind.color;
+  badge.style.color = ind.color;
+
+  document.getElementById('bd-revenue').textContent  = fmt(r.revenue);
+  document.getElementById('bd-purchase').textContent = '−' + fmt(r.purchase);
+  document.getElementById('bd-delivery').textContent = '−' + fmt(r.delivery);
+  document.getElementById('bd-portal').textContent   = '−' + fmt(r.portalFee);
+  document.getElementById('bd-tax').textContent      = '−' + fmt(r.taxAmount);
+  const netEl = document.getElementById('bd-net');
+  netEl.textContent = fmt(r.netProfit);
+  netEl.className = 'bi-val ' + (r.netProfit >= 0 ? 'bi-pos' : 'bi-neg');
+
+  // Tax detail
+  const tbox = document.getElementById('tax-detail');
+  const trows = document.getElementById('tax-detail-rows');
+  tbox.style.display = '';
+  trows.innerHTML = r.taxRows.map(row =>
+    `<div class="tdb-row"><span>${row.label}</span><span>${row.val}</span></div>`
+  ).join('') + (r.vatNote ? `<div style="font-size:10px;color:var(--muted);margin-top:6px;">${r.vatNote}</div>` : '');
+}
+
+// ===== COMPARISON =====
+const MAX_SUPPLIERS = 5;
+
+function addSupplier() {
+  if (suppliers.length >= MAX_SUPPLIERS) return;
+  const id = ++supId;
+  suppliers.push({ id, name: `Поставщик ${id}`, purchase: 0, delivery: 0, vatSupplier: false });
+  renderSuppliers();
+  updateAddBtn();
+  const countEl = document.getElementById('sup-count');
+  if (countEl) countEl.textContent = `(${suppliers.length}/${MAX_SUPPLIERS})`;
+}
+
+function updateAddBtn() {
+  const btn = document.getElementById('add-supplier-btn');
+  if (!btn) return;
+  const reached = suppliers.length >= MAX_SUPPLIERS;
+  btn.disabled = reached;
+  btn.style.opacity = reached ? '0.4' : '1';
+  btn.style.cursor = reached ? 'not-allowed' : 'pointer';
+  btn.textContent = reached ? `✓ Максимум ${MAX_SUPPLIERS} поставщиков` : '+ Добавить поставщика';
+}
+
+function removeSupplier(id) {
+  suppliers = suppliers.filter(s => s.id !== id);
+  renderSuppliers();
+  updateAddBtn();
+}
+
+function updateSupplier(id, field, val) {
+  const s = suppliers.find(s => s.id === id);
+  if (s) s[field] = val;
+  // Only update result displays, don't re-render inputs
+  updateResultDisplays();
+}
+
+// Create DOM for a new supplier card (called once per supplier)
+function createSupplierCard(s) {
+  const div = document.createElement('div');
+  div.className = 'supplier-card';
+  div.id = `scard-${s.id}`;
+  div.innerHTML = `
+    <div class="best-badge">★ Лучший вариант</div>
+    <div class="supplier-name-row">
+      <input type="text" class="s-name-input" placeholder="Название поставщика" value="${s.name}" />
+      <button class="btn btn-danger" onclick="removeSupplier(${s.id})">✕ Удалить</button>
+    </div>
+    <div class="s-fields">
+      <div class="field" style="margin:0">
+        <label>Закупочная цена (₸)</label>
+        <input type="number" class="s-purchase-input" placeholder="0" value="${s.purchase || ''}" />
+      </div>
+      <div class="field" style="margin:0">
+        <label>Доставка (₸)</label>
+        <input type="number" class="s-delivery-input" placeholder="0" value="${s.delivery || ''}" />
+      </div>
+      <div class="field" style="margin:0;display:flex;align-items:center;gap:8px;padding-top:20px;">
+        <input type="checkbox" id="c-vat-s-${s.id}" ${s.vatSupplier ? 'checked' : ''} style="width:auto;accent-color:var(--accent);" />
+        <label for="c-vat-s-${s.id}" style="font-size:12px;color:var(--muted);cursor:pointer;">Плательщик НДС</label>
+      </div>
+    </div>
+    <div class="s-result" id="s-result-${s.id}">
+      <div class="s-pct" id="s-pct-${s.id}" style="color:var(--muted)">—</div>
+      <div class="s-profit">
+        <div class="label">ЧИСТАЯ ПРИБЫЛЬ</div>
+        <div id="s-profit-${s.id}" style="color:var(--muted)">—</div>
+      </div>
+      <div class="compare-bar" style="flex:1;min-width:80px">
+        <div class="compare-bar-fill" id="s-bar-${s.id}" style="width:0%;background:var(--muted)"></div>
+      </div>
+      <div id="s-badge-${s.id}"></div>
+    </div>
+  `;
+
+  // Attach events directly to stable DOM nodes
+  div.querySelector('.s-name-input').addEventListener('input', function() {
+    updateSupplier(s.id, 'name', this.value);
+  });
+  div.querySelector('.s-purchase-input').addEventListener('input', function() {
+    updateSupplier(s.id, 'purchase', parseFloat(this.value) || 0);
+  });
+  div.querySelector('.s-delivery-input').addEventListener('input', function() {
+    updateSupplier(s.id, 'delivery', parseFloat(this.value) || 0);
+  });
+  div.querySelector(`#c-vat-s-${s.id}`).addEventListener('change', function() {
+    updateSupplier(s.id, 'vatSupplier', this.checked);
+  });
+
+  return div;
+}
+
+function renderSuppliers() {
+  const list = document.getElementById('supplier-list');
+  if (suppliers.length === 0) {
+    list.innerHTML = `<div class="empty-state">Нажмите "+ Добавить поставщика" чтобы начать сравнение</div>`;
+    return;
+  }
+
+  // Add cards for new suppliers, remove cards for deleted ones
+  const existingIds = new Set([...list.querySelectorAll('.supplier-card')].map(el => parseInt(el.id.replace('scard-', ''))));
+  const currentIds = new Set(suppliers.map(s => s.id));
+
+  // Remove deleted
+  existingIds.forEach(id => {
+    if (!currentIds.has(id)) {
+      const el = document.getElementById(`scard-${id}`);
+      if (el) el.remove();
+    }
+  });
+
+  // Add new
+  suppliers.forEach(s => {
+    if (!existingIds.has(s.id)) {
+      list.appendChild(createSupplierCard(s));
+    }
+  });
+
+  // Reorder to match suppliers array
+  suppliers.forEach(s => {
+    const el = document.getElementById(`scard-${s.id}`);
+    if (el) list.appendChild(el); // moves to end in order
+  });
+
+  updateResultDisplays();
+}
+
+function updateResultDisplays() {
+  if (suppliers.length === 0) return;
+
+  const bid       = parseFloat(document.getElementById('c-bid').value) || 0;
+  const portalPct = parseFloat(document.getElementById('c-portal').value) || 0;
+  const vatOn     = document.getElementById('c-vat-on').checked;
+  const usnRate   = parseFloat(document.getElementById('c-usn-rate').value) || 3;
+
+  const results = suppliers.map(s => {
+    const r = computeMargin({
+      bid, purchase: s.purchase, delivery: s.delivery || 0, portalPct,
+      taxMode: cTaxMode, entityMode: cEntityMode, vatOn, vatSupplier: s.vatSupplier, usnRate
+    });
+    return { ...s, result: r };
+  });
+
+  const validPcts = results.filter(r => r.result && bid > 0).map(r => r.result.marginPct);
+  const maxPct = Math.max(...validPcts, 0.01);
+  const bestPct = validPcts.length > 1 ? Math.max(...validPcts) : null;
+
+  results.forEach(s => {
+    const r = s.result;
+    const card = document.getElementById(`scard-${s.id}`);
+    if (!card) return;
+
+    const pct = r && bid > 0 ? r.marginPct : null;
+    const ind = pct !== null ? indicator(pct) : null;
+    const isBest = pct !== null && bestPct !== null && pct === bestPct;
+    const barW = pct !== null ? Math.max(0, (pct / (maxPct * 1.2)) * 100) : 0;
+
+    card.classList.toggle('best', isBest);
+
+    const pctEl = document.getElementById(`s-pct-${s.id}`);
+    if (pctEl) {
+      pctEl.textContent = pct !== null ? pct.toFixed(1) + '%' : '—';
+      pctEl.style.color = ind ? ind.color : 'var(--muted)';
+    }
+
+    const profEl = document.getElementById(`s-profit-${s.id}`);
+    if (profEl && r) {
+      profEl.textContent = fmt(r.netProfit);
+      profEl.style.color = r.netProfit >= 0 ? 'var(--accent2)' : 'var(--danger)';
+    } else if (profEl) {
+      profEl.textContent = '—';
+      profEl.style.color = 'var(--muted)';
+    }
+
+    const barEl = document.getElementById(`s-bar-${s.id}`);
+    if (barEl) {
+      barEl.style.width = barW + '%';
+      barEl.style.background = ind ? ind.color : 'var(--muted)';
+    }
+
+    const badgeEl = document.getElementById(`s-badge-${s.id}`);
+    if (badgeEl) {
+      badgeEl.innerHTML = ind ? `<div class="indicator-badge" style="border-color:${ind.color};color:${ind.color};font-size:11px;padding:5px 12px;">
+        <span class="dot" style="background:${ind.color}"></span>${ind.label}
+      </div>` : '';
+    }
+  });
+}
+
+function calcCompare() {
+  updateResultDisplays();
+  updateAddBtn();
+  const countEl = document.getElementById('sup-count');
+  if (countEl) countEl.textContent = suppliers.length ? `(${suppliers.length}/${MAX_SUPPLIERS})` : '';
+}
+
+// ===== TABS =====
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach((el,i) => el.classList.toggle('active', ['calc','compare'][i] === t));
+  document.getElementById('tab-calc').classList.toggle('active', t === 'calc');
+  document.getElementById('tab-compare').classList.toggle('active', t === 'compare');
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', () => {
+  addSupplier();
+  addSupplier();
+  updateAddBtn();
+});
+</script>
+</body>
+</html>
