@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Обкатка ИИ-менеджера</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--text:#1b1f24;--muted:#667;--acc:#0b6bcb;--bot:#e8f1fb;--cli:#eef7ec;--red:#c62828}
+@media (prefers-color-scheme:dark){:root{--bg:#14171b;--card:#1d2127;--text:#e8eaed;--muted:#99a;--acc:#5aa9ff;--bot:#1f3147;--cli:#20341f;--red:#ef5350}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,sans-serif}
+main{max-width:640px;margin:0 auto;padding:16px}h1{font-size:20px;margin:0 0 4px}.muted{color:var(--muted);font-size:13px}
+.card{background:var(--card);border-radius:12px;padding:12px;margin:12px 0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+select,input,button{font:inherit;padding:10px 12px;border-radius:10px;border:1px solid #8884;background:var(--card);color:var(--text)}
+input{flex:1;min-width:120px}button{background:var(--acc);color:#fff;border:0;cursor:pointer}
+button:disabled{opacity:.45}#mic{width:100%;padding:18px;font-size:18px}#mic.rec{background:var(--red)}
+.msg{padding:8px 12px;border-radius:12px;margin:6px 0;max-width:92%}.bot{background:var(--bot)}.cli{background:var(--cli);margin-left:auto}
+.t{font-size:12px;color:var(--muted)}
+</style></head><body><main>
+<h1>Обкатка ИИ-менеджера TenderMax</h1>
+<div class="muted">Речь клиента → K5 → Oylan → озвучка. Говорите как клиент.</div>
+<div class="card row">
+ <select id="lang"><option value="kk">Қазақша</option><option value="ru">Русский</option></select>
+ <input id="name" placeholder="Имя клиента (необязательно)">
+ <button id="start">Позвонить</button>
+</div>
+<div id="chat" class="card"><div class="muted">Нажмите «Позвонить».</div></div>
+<div class="card">
+ <button id="mic" disabled>🎤 Нажмите и говорите, ещё раз — отправить</button>
+ <div class="row" style="margin-top:8px"><input id="txt" placeholder="…или напишите ответ клиента текстом" disabled><button id="send" disabled>→</button></div>
+</div>
+<audio id="player"></audio>
+</main><script>
+let sid=null,rec=null,chunks=[];
+const $=id=>document.getElementById(id), chat=$('chat');
+function add(cls,text,t){const d=document.createElement('div');d.className='msg '+cls;d.textContent=text;
+ if(t){const s=document.createElement('div');s.className='t';s.textContent=t;d.appendChild(s)}chat.appendChild(d);d.scrollIntoView()}
+function play(b64){if(!b64)return;$('player').src='data:audio/wav;base64,'+b64;$('player').play().catch(()=>{})}
+function ready(on){$('mic').disabled=!on;$('txt').disabled=!on;$('send').disabled=!on}
+function show(r){if(r.client!==undefined)add('cli',r.client||'(не распознано)',r.t_stt?('распознано за '+r.t_stt+' с'):'');
+ add('bot',r.bot||r.bot_text,r.t_llm!==undefined?`ответ ${r.t_llm} с · озвучка ${r.t_tts} с`:'');play(r.audio);
+ if(r.end){add('bot','— звонок завершён —');ready(false)}else ready(true)}
+async function post(url,fd){const r=await fetch(url,{method:'POST',body:fd});if(!r.ok)throw new Error(await r.text());return r.json()}
+$('start').onclick=async()=>{chat.innerHTML='';const fd=new FormData();fd.append('lang',$('lang').value);fd.append('name',$('name').value);
+ add('bot','…');const r=await post('api/start',fd);chat.innerHTML='';sid=r.sid;show(r)};
+$('mic').onclick=async()=>{
+ if(rec&&rec.state==='recording'){rec.stop();return}
+ try{const st=await navigator.mediaDevices.getUserMedia({audio:true});rec=new MediaRecorder(st);chunks=[];
+  rec.ondataavailable=e=>chunks.push(e.data);
+  rec.onstop=async()=>{st.getTracks().forEach(t=>t.stop());$('mic').classList.remove('rec');$('mic').textContent='⏳ Думаю…';ready(false);
+   const fd=new FormData();fd.append('sid',sid);fd.append('audio',new Blob(chunks,{type:rec.mimeType}),'a.webm');
+   try{show(await post('api/turn',fd))}catch(e){add('bot','Ошибка: '+e.message);ready(true)}
+   $('mic').textContent='🎤 Нажмите и говорите, ещё раз — отправить'};
+  rec.start();$('mic').classList.add('rec');$('mic').textContent='⏺ Идёт запись — нажмите, чтобы отправить';
+ }catch(e){add('bot','Микрофон недоступен: '+e.message+'. Напишите ответ текстом.')}};
+$('send').onclick=async()=>{const t=$('txt').value.trim();if(!t)return;$('txt').value='';ready(false);
+ const fd=new FormData();fd.append('sid',sid);fd.append('text',t);
+ try{const r=await post('api/text',fd);show(r)}catch(e){add('bot','Ошибка: '+e.message);ready(true)}};
+$('txt').onkeydown=e=>{if(e.key==='Enter')$('send').click()};
+</script></body></html>

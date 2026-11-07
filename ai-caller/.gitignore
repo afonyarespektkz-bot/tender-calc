@@ -1,0 +1,5 @@
+.anthropic_key
+models/
+sessions/
+*.wav
+__pycache__/

@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+python-multipart
+requests
+numpy
+soundfile
+transformers
+safetensors
+sentencepiece
+hydra-core
+omegaconf
+huggingface_hub
+uroman
